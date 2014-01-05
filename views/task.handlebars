@@ -1,15 +1,14 @@
-{{# with expense }}
+{{# with task }}
   <h1> {{ this.title }} </h1>
   {{# if this.description }}
     <p> {{ this.description }} </p>
   {{/if }}
-  <p> value: {{format_money this.value }} </p>
   {{> participant-list }}
 {{/with}}
 {{# if expense.image_id }}
   {{! TODO: factor out this path somehow }}
-  <img src="/thumb/{{ expense.image_id }}/640x480" />
+  <img src="/thumb/{{ task.image_id }}/640x480" />
 {{/if}}
-{{# if expense.is_owner }}
-<p><a href="/expense/{{ expense.id }}/delete">Delete Expense</a></p>
+{{# if task.is_owner }}
+<p><a href="/task/{{ task.id }}/delete">Delete Task</a></p>
 {{/if}}

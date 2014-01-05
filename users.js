@@ -55,52 +55,59 @@ var User = db.bookshelf.Model.extend({
   },
 
   status: function() {
-    // returns the status of the user on the expense, if this was
-    // retrieved relative to an expense.
+    // returns the status of the user on the task, if this was
+    // retrieved relative to an task.
     // Undefined otherwise
     return this.pivot && this.pivot.get('status');
   },
 
-  owned_expenses: function() {
+  owned_tasks: function() {
     // TODO: Blargh...
-    // If I import this at the begining of the file, it creates a circular import, which
-    // node seems to resolve by not importing User when expense.js is imported.
-    var Expense = require('./expenses').Expense;
-    return this.hasMany(Expense, 'owner_id')
+    var Task = require('./tasks').Task;
+    return this.hasMany(Task, 'owner_id')
       .query(function(qb) {
         qb.whereNull('deleted');
       });
   },
 
-  participant_expenses: function() {
+  participant_tasks: function() {
     // TODO: Blargh...
-    var expenses = require('./expenses');
-    var Expense = expenses.Expense;
-    var ExpenseStatus = expenses.ExpenseStatus;
-    return this.belongsToMany(Expense)
-      .through(ExpenseStatus)
+    var tasks = require('./tasks');
+    var Task = tasks.Task;
+    var TaskStatus = tasks.TaskStatus;
+    return this.belongsToMany(Task)
+      .through(TaskStatus)
       .withPivot('status').query(function(qb) {
         qb.whereNull('deleted');
       });
   },
 
-  paid_expenses: function() {
-    // Expenses where the user is a participant and has paid
-    var expenses = require('./expenses');
-    return this.participant_expenses()
+  unscheduled_tasks: function() {
+    // Tasks where the user is a participant and has not scheduled the task
+    var tasks = require('./tasks');
+    return this.participant_tasks()
       .query(function(qb) {
-        qb.where('status', '=', expenses.expense_states.PAID);
+        qb.where('status', '=', tasks.task_states.UNSCHEDULED);
       });
   },
 
-  unpaid_expenses: function() {
-    // Expenses where the user is a participant and has not paid
-    var expenses = require('./expenses');
-    return this.participant_expenses()
+  scheduled_tasks: function() {
+    // Tasks where the user is a participant and has not scheduled the task
+    var tasks = require('./tasks');
+    return this.participant_tasks()
       .query(function(qb) {
-        qb.where('status', '=', expenses.expense_states.WAITING);
+        qb.where('status', '=', tasks.task_states.SCHEDULED);
       });
   },
+
+  done_tasks: function() {
+    // Tasks where the user is a participant and has not scheduled the task
+    var tasks = require('./tasks');
+    return this.participant_tasks()
+      .query(function(qb) {
+        qb.where('status', '=', tasks.task_states.DONE);
+      });
+  }/*,
 
   // Used in finished_expenses and unfinished expenses
   _with_waiting: function() {
@@ -126,7 +133,7 @@ var User = db.bookshelf.Model.extend({
       .query(function(qb) {
         qb.whereExists(this._with_waiting);
       }.bind(this));
-  }
+  }*/
 
 }, {
   login: function(email, password) {
@@ -138,6 +145,5 @@ var User = db.bookshelf.Model.extend({
     });
   }
 });
-
 
 exports.User = User;

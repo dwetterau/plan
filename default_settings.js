@@ -13,15 +13,15 @@ if (process.env.NODE_ENV == 'testing') {
 } else {
   exports.database_client = 'pg';
   exports.database_connection = {
-    user: 'expenses',
-    password: 'expenses_password',
-    database: 'expenses',
+    user: 'tasks',
+    password: '7852354546394752',
+    database: 'tasks',
     host: 'localhost',
     port: 5432,
     dialect: 'postgres',
     native: true
   };
-  exports.hostname = 'https://expenses.adamf.co';
+  exports.hostname = '';
 }
 // Set to true in order to see all queries issued
 exports.debug = false;

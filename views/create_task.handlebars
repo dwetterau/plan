@@ -4,10 +4,6 @@
   <input type="text" name="title" required="required" />
 </div>
 <div>
-  <label for="value"> Value (in cents): </label>
-  <input type="number" name="value" required="required" />
-</div>
-<div>
   <label for="title"> Description: </label>
   <input type="text" name="description" />
 </div>
@@ -16,8 +12,16 @@
   <input type="text" name="participants" />
 </div>
 <div>
-  <label for="image"> Receipt Image: </label>
+  <label for="duration"> Duration: </label>
+  <input type="text" name="duration">
+</div>
+<div>
+  <label for="deadline"> Deadline: </label>
+  <input type="datetime-local" name="deadline">
+</div>
+<div>
+  <label for="image"> Additional Image: </label>
   <input type="file" name="image" />
 </div>
-<input type="submit" value="Create Expense" />
+<input type="submit" value="Create Task" />
 </form>

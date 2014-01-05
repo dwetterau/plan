@@ -24,8 +24,8 @@ var Image = db.bookshelf.Model.extend({
   },
 
   check_permission: function(user_id) {
-    var Expense = require('./expenses').Expense;
-    return Expense.getWithPermissionCheck(this.get('expense_id'), user_id);
+    var Expense = require('./tasks').Task;
+    return Expense.getWithPermissionCheck(this.get('task_id'), user_id);
   },
 
   hasTimestamps: ['created_at', 'updated_at']

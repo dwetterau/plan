@@ -9,11 +9,13 @@
   <body>
     {{#if logged_in}}
       <a href="/">Home</a>
-      <a href="/create_expense/">Create Expense</a>
+      <a href="/create_task/">Create Task</a>
+      <a href="/change_password/">Change Password</a>
       <a href="/logout/">Logout</a>
     {{else}}
       <a href="/login/">Login</a>
       <a href="/create_account/">Create Account</a>
+      <a href="/reset_password/">Reset Password</a>
     {{/if}}
     {{{body}}}
   </body>

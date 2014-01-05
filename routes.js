@@ -1,9 +1,9 @@
 var fs = require('fs');
 var Q = require('q');
 var auth = require('./auth');
-var expenses = require('./expenses');
-var Expense = expenses.Expense;
-var ExpenseStatus = expenses.ExpenseStatus;
+var tasks = require('./tasks');
+var Task = tasks.Task;
+var TaskStatus = tasks.TaskStatus;
 
 var images = require('./images');
 var Image = images.Image;
@@ -32,7 +32,7 @@ exports.install_routes = function(app) {
   // Main route
   app.get('/', auth.check_auth, function(req, res) {
     var user = new User(req.session.user);
-    var unfinished = user.unfinished_expenses();
+    /*var unfinished = user.unfinished_expenses();
     var unpaid = user.unpaid_expenses();
 
     Q.all([unfinished.fetch({withRelated: ['owner', 'participants']}),
@@ -44,19 +44,19 @@ exports.install_routes = function(app) {
         var template_unpaid = unpaid.map(function(x) {
           return expenses.templateify(x, user.get('id'));
         });
-
+*/
         res.render("index", {
-          title: "Expense Tracker",
+          /*title: "Expense Tracker",
           email: user.get('email'),
           name: user.get('name'),
           unfinished_expenses: template_unfinished,
           unpaid_expenses: template_unpaid,
-          logged_in: true
+          logged_in: true*/
         });
-
+/*
       }).catch(function(err) {
         send_error(res, 'An error occurred while retrieving the expenses: ', err);
-      });
+      });*/
   });
 
   app.post('/login', function(req, res) {
@@ -224,15 +224,17 @@ exports.install_routes = function(app) {
     });
   });
 
-  // Expenses routes
-  app.get('/create_expense', auth.check_auth, function(req, res) {
-    res.render('create_expense', {title: 'Create new expense', logged_in: true});
+  // Task routes
+  app.get('/create_task', auth.check_auth, function(req, res) {
+    res.render('create_task', {title: 'Create new task', logged_in: true});
   });
 
-  app.post('/create_expense', auth.check_auth, function(req, res) {
+  app.post('/create_task', auth.check_auth, function(req, res) {
     var title = req.body.title;
     var description = req.body.description || undefined;
-    var value = parseInt(req.body.value, 10);
+    var deadline = req.body.deadline;
+    var duration = parseInt(req.body.duration);
+    var score = 0;
     var owner = req.session.user;
     var participants = [];
     var image_path = req.files.image && req.files.image.path;
@@ -248,19 +250,21 @@ exports.install_routes = function(app) {
       return participant.fetch();
     });
 
-    var expense = new Expense({
+    var task = new Task({
       owner_id: owner.id,
       title: title,
       description: description,
-      value: value
+      deadline: deadline,
+      duration: duration,
+      score: score
     });
 
-    var image_store_promise = function(expense_id) {
+    var image_store_promise = function(task_id) {
       return Q.nfcall(fs.stat, image_path).then(function(file_stats) {
         if (file_stats.size === 0) {
           return undefined;
         } else {
-          return images.store_image(image_path, expense_id);
+          return images.store_image(image_path, task_id);
         }
       }).fail(function(err) {
           console.log('ERROR ' + err);
@@ -269,23 +273,23 @@ exports.install_routes = function(app) {
       });
     };
 
-    expense.save().then(function() {
-      return image_store_promise(expense.get('id'));
+    task.save().then(function() {
+      return image_store_promise(task.get('id'));
     }).then(function(image) {
       if (image) {
-        // set the image_id on the expense and save it again
-        expense.set('image_id', image.get('id'));
-        return expense.save();
+        // set the image_id on the task and save it again
+        task.set('image_id', image.get('id'));
+        return task.save();
       }
       return undefined;
     }).then(function() {
       var status_promises = fetch_user_promises.map(function(fetch_user_promise, i) {
         fetch_user_promise.then(function() {
           var participant = participants[i];
-          var new_status = new ExpenseStatus({
+          var new_status = new TaskStatus({
             user_id: participant.get('id'),
-            expense_id: expense.get('id'),
-            status: expenses.expense_states.WAITING
+            task_id: task.get('id'),
+            status: tasks.task_states.UNSCHEDULED
           });
           return new_status.save();
         });
@@ -293,7 +297,7 @@ exports.install_routes = function(app) {
 
       return Q.all(status_promises);
     }).then(function() {
-      // Create an email alert for the new expense
+      /*// Create an email alert for the new expense
       var new_expense_email_desc = {
         type: emails.email_types.NEW_EXPENSE_NOTIFICATION,
         sender: owner.email,
@@ -305,57 +309,54 @@ exports.install_routes = function(app) {
         sent: false
       };
       var new_expense_email = new Email(new_expense_email_desc);
-      return new_expense_email.save();
+      return new_expense_email.save();*/
     }).then(function() {
-      res.redirect('/expense/' + expense.get('id'));
+      res.redirect('/task/' + task.get('id'));
     }, function(err) {
-      send_error(res, 'An error occurred making the expense: ', err);
+      send_error(res, 'An error occurred making the task: ', err);
     });
   });
 
-  app.get('/expense/:expense_id', auth.check_auth, function(req, res) {
-    var expense_id = req.params.expense_id;
+  app.get('/task/:task_id', auth.check_auth, function(req, res) {
+    var task_id = req.params.task_id;
     var user = new User(req.session.user);
-    Expense.getWithPermissionCheck(expense_id, user.get('id')).then(function(expense) {
-      if (!expense) {
-        send_error(res, 'Expense not found ', new Error('Expense not found'));
+    Task.getWithPermissionCheck(task_id, user.get('id')).then(function(task) {
+      if (!task) {
+        send_error(res, 'Task not found ', new Error('Task not found'));
         return;
       }
-      res.render('expense', {title: 'Expense detail',
-                             expense: expenses.templateify(expense, user.get('id')),
+      res.render('task', {title: 'Task detail',
+                             task: tasks.templateify(task, user.get('id')),
                              logged_in: true});
     }, function(err) {
-      send_error(res, 'An error occurred retrieving the expense: ', err);
+      send_error(res, 'An error occurred retrieving the task: ', err);
     });
   });
 
   // TODO: this should be a post
-  app.get('/expense/:expense_id/pay/:user_id', function(req, res) {
-    // Mark the expense as paid for user user_id
-    var expense = new Expense({'id': req.params.expense_id});
+  app.get('/task/:task_id/done/:user_id', function(req, res) {
+    // Mark the task as paid for user user_id
+    var task = new Task({'id': req.params.task_id});
     var user_id = req.params.user_id;
-    var owner_id = req.session.user.id;
-    expense.getWithAllParticipants().then(function() {
-      expense.mark_paid(owner_id,
-                        user_id)
-        .then(function() {
-          res.redirect('/expense/' + expense.get('id'));
-        });
+    task.getWithAllParticipants().then(function() {
+      return task.mark_done(user_id);
+    }).then(function() {
+      res.send(200);
     });
   });
 
   // TODO: Make this a post also
-  app.get('/expense/:expense_id/delete', auth.check_auth, function(req, res) {
-    var expense = new Expense({id: req.params.expense_id});
+  app.get('/task/:task_id/delete', auth.check_auth, function(req, res) {
+    var task = new Task({id: req.params.task_id});
     var user_id = req.session.user.id;
-    expense.fetch().then(function() {
-      if (expense.get('owner_id') == user_id) {
-        return expense.destroy();
+    task.fetch().then(function() {
+      if (task.get('owner_id') == user_id) {
+        return task.destroy();
       }
     }).then(function() {
       res.redirect('/');
     }, function(err) {
-      send_error(res, 'An error occurred while trying to delete the expense: ', err);
+      send_error(res, 'An error occurred while trying to delete the task: ', err);
     });
   });
 
